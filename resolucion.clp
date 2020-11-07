@@ -46,7 +46,7 @@
 
 (defrule pide-valor
     (initial-fact)
-    =>
+     =>
     (printout t "Introduzca cuadrila donde aumentar la explotacion. " crlf)
     (printout t "Fila: " crlf)
 	(bind ?fila (read))
@@ -58,8 +58,8 @@
 (defrule aplicar-explotacion
     ?e <- (aumentar-explotacion (fila ?x) (columna ?y) (estado pendiente))
     ?c <- (cuadricula (fila ?x) (columna ?y) (nivel-explotacion ?ne) (tratado no))
-    =>
-    (printout t "Aumentamos explotación..." crlf)
+     =>
+    (printout t "Aumentamos explotación de " ?x ", " ?y "" crlf)
     (if (eq ?ne N) then
         (modify ?c (nivel-explotacion B) (tratado si))
     )
@@ -69,24 +69,29 @@
     (if (eq ?ne A) then
         (modify ?c (nivel-explotacion N) (tratado si))
     )
-    (printout t "Vamos a aplicar reglas de explotacion..." crlf)
     (modify ?e (estado explotado))
 )
 
 (defrule aplicar-explotacion-colindantes
     ?e <- (aumentar-explotacion (fila ?x) (columna ?y) (estado explotado))
      =>
-     ; Quitamos el origen de la explotación ?
+    ; Quitamos el origen de la explotación ?
     (retract ?e)
-    (printout t "Aumentamos explotación en colindantes..." crlf)
     ; Cuadrículas en la misma columna
     (if (> ?x 1) then
+        (printout t "Hecho nuevo para aumentar en " (- ?x 1) ", " ?y "" crlf)
         (assert (aumentar-explotacion (fila (- ?x 1)) (columna ?y) (estado pendiente)))
         
     )
     (if (< ?x 3) then
+        (printout t "Hecho nuevo para aumentar en " (+ ?x 1) ", " ?y "" crlf)
         (assert (aumentar-explotacion (fila (+ ?x 1)) (columna ?y) (estado pendiente)))
-    )
+    )   
+)
 
-    
+(defrule eliminar-aplicacion-explotacion
+    ?e <- (aumentar-explotacion (fila ?x) (columna ?y) (estado pendiente))
+    ?c <- (cuadricula (fila ?x) (columna ?y) (nivel-explotacion ?ne) (tratado si))
+     =>
+    (retract ?e)
 )
