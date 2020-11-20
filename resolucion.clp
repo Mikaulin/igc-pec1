@@ -86,6 +86,16 @@
     (if (< ?x 3) then
         (printout t "Hecho nuevo para aumentar en " (+ ?x 1) ", " ?y "" crlf)
         (assert (aumentar-explotacion (fila (+ ?x 1)) (columna ?y) (estado pendiente)))
+    )
+    ; Cuadrículas en la misma fila
+    (if (> ?y 1) then
+        (printout t "Hecho nuevo para aumentar en " ?x ", " (- ?y 1) "" crlf)
+        (assert (aumentar-explotacion (fila ?x) (columna (- ?y 1)) (estado pendiente)))
+        
+    )
+    (if (< ?y 3) then
+        (printout t "Hecho nuevo para aumentar en " ?x ", " (+ ?y 1) "" crlf)
+        (assert (aumentar-explotacion (fila ?x) (columna (+ ?y 1)) (estado pendiente)))
     )   
 )
 
