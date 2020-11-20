@@ -9,12 +9,13 @@
 
 (defglobal ?*filas* = 3)
 (defglobal ?*columnas* = 3)
+(defglobal ?*maximo* = 9)
 
 ; **********************************************************************************************
 ; * Plantillas                                                                     
 ; **********************************************************************************************
 
-(deftemplate estado
+(deftemplate arbol
       (multislot territorio
             (type SYMBOL))
       (slot padre
@@ -30,14 +31,8 @@
             (type INTEGER))
       (slot estado
             (type SYMBOL)
-            (allowed-symbols explotado pendiente))
+            (allowed-symbols tratado colindantes pendiente))
 )
-
-(deftemplate aumentar-explotacion
-    (slot indice (type INTEGER) (range 1 9) )
-    (slot estado (type SYMBOL) (allowed-symbols explotado pendiente))
-)
-
 
 ;**************************************************************
 ;
@@ -48,7 +43,7 @@
 (defrule inicial
       ?x <- (initial-fact)
 =>
-      (assert (estado (territorio N N N N) (padre sin-padre) (nodo 0) (nivel 1) (indice 1) (estado pendiente)))
+      (assert (arbol (territorio N N N N) (padre sin-padre) (nodo 0) (nivel 0) (indice 1) (estado tratado)))
       (assert (nodoactual 1))
       (retract ?x)
 )
@@ -56,23 +51,54 @@
 
 (defrule aumentar-explotacion
       (declare (salience 500))
-      ?hecho <- (estado (territorio $?t) (nivel ?nivel) (indice ?i) (estado ?e))
-      (test (eq ?e pendiente)) ; TODO A modo de prueba solo nivel 1
+      ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado ?e))
+      (test (and (< ?nivel 2) (eq ?e tratado))) ; TODO Solo hasta nivel 1
 =>
-      (printout t "Aumentamos explotacion en el indice " ?i "" crlf)
-      (assert (aumentar-explotacion (indice ?i) (estado pendiente)))
-      (assert (estado (territorio ?t) (padre ?hecho) (nivel (+ ?nivel 1)) (estado explotado))) ; TODO A modo de prueba ya explotado
+      (printout t "Aumentamos explotacion en el indice " ?i "" crlf)      
+      (assert (arbol (territorio ?t) (padre ?hecho) (nivel (+ ?nivel 1)) (indice ?i) (estado pendiente))) 
 )
 
 (defrule aplicar-explotacion
-    ?e <- (aumentar-explotacion (indice ?i) (estado pendiente))
-    ?hecho <- (estado (territorio $?t) (nivel ?nivel) (indice ?i))
+    (declare (salience 1000))
+    ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado ?e))
+    (test (and (< ?nivel 2) (eq ?e pendiente))) ; TODO Solo hasta nivel 1
      =>
-    (printout t "Aumentamos explotación de " ?i "" crlf)
-    (printout t "Valor  " (nth$ ?i ?t) "" crlf)
-    ; Insertar un elemento en posición
-    (modify ?hecho (territorio (replace$ ?t ?i ?i A)) (estado explotado))
-    (printout t "Nuevo territorio  " (replace$ ?t ?i ?i A) "" crlf)
-    (modify ?e (estado explotado))
+    (bind ?ne (nth$ ?i ?t))
+    (printout t "Explotar indice " ?i " con nivel " ?ne "" crlf)
+    (if (eq ?ne N) then
+        (modify ?hecho (territorio (replace$ ?t ?i ?i B)) (estado colindantes))
+    )
+    (if (eq ?ne B) then
+        (modify ?hecho (territorio (replace$ ?t ?i ?i A)) (estado colindantes))
+    )
+    (if (eq ?ne A) then
+        ;(modify ?hecho (nivel-explotacion N) (tratado si))
+    )
+    (printout t "Hecho modificado " ?hecho "" crlf)
 )
 
+
+(defrule aplicar-explotacion-colindantes
+    (declare (salience 1500))
+    ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado ?e))
+    (test (and (< ?nivel 2) (eq ?e colindantes))) ; TODO Solo hasta nivel 1
+     =>
+    (printout t "Colindantes del indice " ?i "" crlf)
+    ; Izquierda
+    (if (> (- ?i 1) 0) then
+        (printout t "Modificamos izquierda " (- ?i 1) "" crlf)
+    )
+    ; Derecha
+    (if (< (+ ?i 1) ?*maximo*) then
+        (printout t "Modificamos derecha " (+ ?i 1) "" crlf)
+    )
+    ; Arriba
+    (if (> (- ?i ?*columnas*) 0) then
+        (printout t "Modificamos arriba " (- ?i ?*columnas*) "" crlf)
+    )
+    ; Abajo
+    (if (< (+ ?i ?*columnas*) ?*maximo*) then
+        (printout t "Modificamos abajo " (+ ?i ?*columnas*) "" crlf)
+    )
+    
+)
