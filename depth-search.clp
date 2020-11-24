@@ -7,13 +7,21 @@
 
 ; Variables globales
 
-(defglobal ?*filas* = 3)
-(defglobal ?*columnas* = 3)
-(defglobal ?*maximo* = 9)
+(defglobal ?*filas* = 2)
+(defglobal ?*columnas* = 2)
+(defglobal ?*maximo* = 4)
 
 ; **********************************************************************************************
 ; * Plantillas                                                                     
 ; **********************************************************************************************
+
+(deftemplate explotar-casilla
+      (slot indice
+            (type INTEGER))
+      (slot nodo
+            (type INTEGER)
+            (default 0))
+)
 
 (deftemplate arbol
       (multislot territorio
@@ -31,7 +39,7 @@
             (type INTEGER))
       (slot estado
             (type SYMBOL)
-            (allowed-symbols tratado colindantes pendiente))
+            (allowed-symbols tratado pendiente))
 )
 
 ;**************************************************************
@@ -44,61 +52,93 @@
       ?x <- (initial-fact)
 =>
       (assert (arbol (territorio N N N N) (padre sin-padre) (nodo 0) (nivel 0) (indice 1) (estado tratado)))
-      (assert (nodoactual 1))
+      (assert (nodoactual 0))
       (retract ?x)
 )
 
 
-(defrule aumentar-explotacion
+(defrule siguiente-nodo
       (declare (salience 500))
-      ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado ?e))
-      (test (and (< ?nivel 2) (eq ?e tratado))) ; TODO Solo hasta nivel 1
+      ?nodoactual  <- (nodoactual ?contador)
+      ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado tratado) (nodo ?n))
+      (not (explotar-casilla)) ;La idea es que no haya ninguna casilla pendiente
+      (test (= ?contador ?n))
 =>
-      (printout t "Aumentamos explotacion en el indice " ?i "" crlf)      
-      (assert (arbol (territorio ?t) (padre ?hecho) (nivel (+ ?nivel 1)) (indice ?i) (estado pendiente))) 
+      (bind ?siguientenodo (+ ?contador 1))
+      (assert (nodoactual ?siguientenodo))
+      (retract ?nodoactual)
+
+      (printout t "Nodo " ?siguientenodo "" crlf)
+      (assert (arbol (territorio ?t) (padre ?hecho) (nivel (+ ?nivel 1)) (nodo ?siguientenodo) (indice ?i) (estado pendiente))) 
 )
 
-(defrule aplicar-explotacion
+(defrule explotar-casilla
     (declare (salience 1000))
-    ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado ?e))
+    ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado ?e) (nodo ?n))
     (test (and (< ?nivel 2) (eq ?e pendiente))) ; TODO Solo hasta nivel 1
      =>
     (bind ?ne (nth$ ?i ?t))
     (printout t "Explotar indice " ?i " con nivel " ?ne "" crlf)
+    (assert (explotar-casilla (indice ?i) (nodo ?n)))
+)
+
+
+(defrule explotar-arriba
+    (declare (salience 1500))
+    ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado pendiente) (nodo ?n))
+    (test (and (< ?nivel 2) (> (- ?i ?*columnas*) 0))) ; TODO Solo hasta nivel 1
+     =>
+    (printout t "Modificamos arriba " (- ?i ?*columnas*) "" crlf)
+    (bind ?ne (nth$ (- ?i ?*columnas*) ?t))
+    (assert (explotar-casilla (indice (- ?i ?*columnas*)) (nodo ?n)))
+)
+
+(defrule explotar-derecha
+    (declare (salience 1500))
+    ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado pendiente) (nodo ?n))
+    (test (and (< ?nivel 2) (< (+ ?i 1) ?*maximo*))) ; TODO Solo hasta nivel 1
+     =>
+    (printout t "Modificamos der " (+ ?i 1) "" crlf)
+    (bind ?ne (nth$ (+ ?i 1) ?t))
+    (assert (explotar-casilla (indice (+ ?i 1)) (nodo ?n)))
+)
+
+(defrule explotar-izquierda
+    (declare (salience 1500))
+    ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado pendiente) (nodo ?n))
+    (test (and (< ?nivel 2) (> (- ?i 1) 0))) ; TODO Solo hasta nivel 1
+     =>
+    (printout t "Modificamos izquierda " (- ?i 1) "" crlf)    
+    (bind ?ne (nth$ (- ?i 1) ?t))
+    (assert (explotar-casilla (indice (- ?i 1)) (nodo ?n)))
+)
+
+(defrule explotar-abajo
+    (declare (salience 1500))
+    ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado pendiente) (nodo ?n))
+    (test (and (< ?nivel 2) (< (+ ?i ?*columnas*) ?*maximo*))) ; TODO Solo hasta nivel 1
+     =>
+    (printout t "Modificamos abajo " (+ ?i ?*columnas*) "" crlf)  
+    (bind ?ne (nth$ (+ ?i ?*columnas*) ?t))
+    (assert (explotar-casilla (indice (+ ?i ?*columnas*)) (nodo ?n)))
+)
+
+
+(defrule aplicar-explotacion
+    (declare (salience 500))
+    ?casilla <- (explotar-casilla (indice ?ci))
+    ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado ?e))
+     =>
+    (bind ?ne (nth$ ?ci ?t))
     (if (eq ?ne N) then
-        (modify ?hecho (territorio (replace$ ?t ?i ?i B)) (estado colindantes))
+        (modify ?hecho (territorio (replace$ ?t ?ci ?ci B)) (estado tratado))
     )
     (if (eq ?ne B) then
-        (modify ?hecho (territorio (replace$ ?t ?i ?i A)) (estado colindantes))
+        (modify ?hecho (territorio (replace$ ?t ?ci ?ci A)) (estado tratado))
     )
     (if (eq ?ne A) then
         ;(modify ?hecho (nivel-explotacion N) (tratado si))
     )
-    (printout t "Hecho modificado " ?hecho "" crlf)
-)
-
-
-(defrule aplicar-explotacion-colindantes
-    (declare (salience 1500))
-    ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado ?e))
-    (test (and (< ?nivel 2) (eq ?e colindantes))) ; TODO Solo hasta nivel 1
-     =>
-    (printout t "Colindantes del indice " ?i "" crlf)
-    ; Izquierda
-    (if (> (- ?i 1) 0) then
-        (printout t "Modificamos izquierda " (- ?i 1) "" crlf)
-    )
-    ; Derecha
-    (if (< (+ ?i 1) ?*maximo*) then
-        (printout t "Modificamos derecha " (+ ?i 1) "" crlf)
-    )
-    ; Arriba
-    (if (> (- ?i ?*columnas*) 0) then
-        (printout t "Modificamos arriba " (- ?i ?*columnas*) "" crlf)
-    )
-    ; Abajo
-    (if (< (+ ?i ?*columnas*) ?*maximo*) then
-        (printout t "Modificamos abajo " (+ ?i ?*columnas*) "" crlf)
-    )
-    
+    (printout t "Aplicar explotacion en el indice " ?ci " con nivel " ?ne "" crlf)      
+    (retract ?casilla)
 )
