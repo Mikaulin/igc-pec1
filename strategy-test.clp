@@ -68,13 +68,18 @@
       (assert (casilla-explotada (indice (member$ ?N (create$ $?primeras ?N $?ultimas)))))
 )
 
-;(defrule explotar-B-A
-      ;?hecho <- (arbol (territorio $?primeras ?B $?ultimas) (nivel ?nivel) (indice ?i) (nodo ?n))
-      ;(test (and (eq ?B B) (< ?nivel 3)))
-;=>
-      ;(printout t "Posicion " (member$ ?B (create$ $?primeras ?B $?ultimas)) "" crlf)
-      ;(assert (arbol (territorio $?primeras A $?ultimas) (padre ?hecho) (nivel (+ ?nivel 1)) (indice ?i)))  
-;)
+(defrule explotar-B-A
+      ?hecho <- (arbol (territorio $?primeras ?B $?ultimas) (nivel ?nivel) (indice ?i) (nodo ?n))
+      (test (and (eq ?B B) (< ?nivel 3)))
+=>
+      (bind ?posicion (member$ ?B (create$ $?primeras ?B $?ultimas)))
+      (printout t "Posicion " ?posicion "" crlf)
+      (printout t "Nuevo territorio " $?primeras A $?ultimas "" crlf)
+      (assert (arbol (territorio $?primeras A $?ultimas) (padre ?hecho) (nivel (+ ?nivel 1)) (indice ?posicion)))  
+      
+      ; Nuevo
+      (assert (casilla-explotada (indice (member$ ?B (create$ $?primeras ?B $?ultimas)))))
+)
 
 (defrule contador-nodos      
       (declare (salience 1000))
