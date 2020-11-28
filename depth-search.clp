@@ -75,7 +75,7 @@
 (defrule explotar-casilla
     (declare (salience 1000))
     ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado ?e) (nodo ?n))
-    (test (and (< ?nivel 2) (eq ?e pendiente))) ; TODO Solo hasta nivel 1
+    (test (eq ?e pendiente))
      =>
     (bind ?ne (nth$ ?i ?t))
     (printout t "Explotar indice " ?i " con nivel " ?ne "" crlf)
@@ -86,7 +86,7 @@
 (defrule explotar-arriba
     (declare (salience 1500))
     ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado pendiente) (nodo ?n))
-    (test (and (< ?nivel 2) (> (- ?i ?*columnas*) 0))) ; TODO Solo hasta nivel 1
+    (test (> (- ?i ?*columnas*) 0))
      =>
     (printout t "Modificamos arriba " (- ?i ?*columnas*) "" crlf)
     (bind ?ne (nth$ (- ?i ?*columnas*) ?t))
@@ -96,7 +96,7 @@
 (defrule explotar-derecha
     (declare (salience 1500))
     ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado pendiente) (nodo ?n))
-    (test (and (< ?nivel 2) (< (+ ?i 1) ?*maximo*))) ; TODO Solo hasta nivel 1
+    (test (< (+ ?i 1) ?*maximo*))
      =>
     (printout t "Modificamos der " (+ ?i 1) "" crlf)
     (bind ?ne (nth$ (+ ?i 1) ?t))
@@ -106,7 +106,7 @@
 (defrule explotar-izquierda
     (declare (salience 1500))
     ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado pendiente) (nodo ?n))
-    (test (and (< ?nivel 2) (> (- ?i 1) 0))) ; TODO Solo hasta nivel 1
+    (test (> (- ?i 1) 0))
      =>
     (printout t "Modificamos izquierda " (- ?i 1) "" crlf)    
     (bind ?ne (nth$ (- ?i 1) ?t))
@@ -116,7 +116,7 @@
 (defrule explotar-abajo
     (declare (salience 1500))
     ?hecho <- (arbol (territorio $?t) (nivel ?nivel) (indice ?i) (estado pendiente) (nodo ?n))
-    (test (and (< ?nivel 2) (< (+ ?i ?*columnas*) ?*maximo*))) ; TODO Solo hasta nivel 1
+    (test (< (+ ?i ?*columnas*) ?*maximo*))
      =>
     (printout t "Modificamos abajo " (+ ?i ?*columnas*) "" crlf)  
     (bind ?ne (nth$ (+ ?i ?*columnas*) ?t))
@@ -137,7 +137,7 @@
         (modify ?hecho (territorio (replace$ ?t ?ci ?ci A)) (estado tratado))
     )
     (if (eq ?ne A) then
-        ;(modify ?hecho (nivel-explotacion N) (tratado si))
+        (modify ?hecho (estado tratado))
     )
     (printout t "Aplicar explotacion en el indice " ?ci " con nivel " ?ne "" crlf)      
     (retract ?casilla)
