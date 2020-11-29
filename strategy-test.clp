@@ -57,28 +57,30 @@
 
 (defrule explotar-N-B
       ?hecho <- (arbol (territorio $?primeras ?N $?ultimas) (nivel ?nivel) (indice ?i) (nodo ?n))
-      (test (and (eq ?N N) (< ?nivel 3)))
+      ;(test (and (eq ?N N) (< ?nivel 3)))
+      (test (eq ?N N))
 =>
       (bind ?posicion (member$ ?N (create$ $?primeras ?N $?ultimas)))
-      (printout t "Posicion " ?posicion "" crlf)
-      (printout t "Nuevo territorio " $?primeras B $?ultimas "" crlf)
+      ;(printout t "Posicion " ?posicion "" crlf)
+      ;(printout t "Nuevo territorio " $?primeras B $?ultimas "" crlf)
       (assert (arbol (territorio $?primeras B $?ultimas) (padre ?hecho) (nivel (+ ?nivel 1)) (indice ?posicion)))  
       
       ; Nuevo
-      (assert (casilla-explotada (indice (member$ ?N (create$ $?primeras ?N $?ultimas)))))
+      (assert (casilla-explotada (indice ?posicion)))
 )
 
 (defrule explotar-B-A
       ?hecho <- (arbol (territorio $?primeras ?B $?ultimas) (nivel ?nivel) (indice ?i) (nodo ?n))
-      (test (and (eq ?B B) (< ?nivel 3)))
+      ;(test (and (eq ?B B) (< ?nivel 3)))
+      (test (eq ?B B))
 =>
       (bind ?posicion (member$ ?B (create$ $?primeras ?B $?ultimas)))
-      (printout t "Posicion " ?posicion "" crlf)
-      (printout t "Nuevo territorio " $?primeras A $?ultimas "" crlf)
+      ;(printout t "Posicion " ?posicion "" crlf)
+      ;(printout t "Nuevo territorio " $?primeras A $?ultimas "" crlf)
       (assert (arbol (territorio $?primeras A $?ultimas) (padre ?hecho) (nivel (+ ?nivel 1)) (indice ?posicion)))  
       
       ; Nuevo
-      (assert (casilla-explotada (indice (member$ ?B (create$ $?primeras ?B $?ultimas)))))
+      (assert (casilla-explotada (indice ?posicion)))
 )
 
 (defrule contador-nodos      
@@ -109,7 +111,7 @@
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (> (- ?indice ?*columnas*) 0)))
 
 =>
-      (printout t "Modificamos arriba " (- ?indice ?*columnas*) "" crlf)
+      ;(printout t "Modificamos arriba " (- ?indice ?*columnas*) "" crlf)
       (assert (colindante (indice (- ?indice ?*columnas*)) (nodo ?nodo)))
 )
 
@@ -120,7 +122,7 @@
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (< (+ ?indice ?*columnas*) ?*maximo*)))
 
 =>
-      (printout t "Modificamos abajo " (+ ?indice ?*columnas*) "" crlf)
+      ;(printout t "Modificamos abajo " (+ ?indice ?*columnas*) "" crlf)
       (assert (colindante (indice (+ ?indice ?*columnas*)) (nodo ?nodo)))
 )
 
@@ -131,7 +133,7 @@
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (< (+ ?indice 1) ?*maximo*)))
 
 =>
-      (printout t "Modificamos derecha " (+ ?indice 1) "" crlf)
+      ;(printout t "Modificamos derecha " (+ ?indice 1) "" crlf)
       (assert (colindante (indice (+ ?indice 1)) (nodo ?nodo)))
 )
 
@@ -142,7 +144,7 @@
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (> (- ?indice 1) 0)))
 
 =>
-      (printout t "Modificamos izquierda " (- ?indice 1) "" crlf)
+      ;(printout t "Modificamos izquierda " (- ?indice 1) "" crlf)
       (assert (colindante (indice (- ?indice 1)) (nodo ?nodo)))
 )
 
@@ -152,7 +154,7 @@
       ?explotada <- (casilla-explotada (indice ?indice) (nodo ?nodo))
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado)))
 =>
-      (printout t "Explotar colindantes del indice " ?indice " , nodo " ?nodo "" crlf)
+      ;(printout t "Explotar colindantes del indice " ?indice " , nodo " ?nodo "" crlf)
       (retract ?explotada)
 )
 
@@ -170,3 +172,24 @@
 
       (retract ?casillacolindante)
 )
+
+
+(defrule elimina-nodos-repetidos
+      (declare (salience 2000))
+      ?hecho1 <- (arbol (territorio $?t1) (nodo ?nodo1) (nivel ?n1) (padre ?p1))
+      ?hecho2 <- (arbol (territorio $?t2) (nodo ?nodo2) (nivel ?n2) (padre ?p2))
+      ?casillacolindante <- (colindante (indice ?indice) (nodo ?nodocolindante))
+      (test(eq ?t1 ?t2))
+      (test(neq ?hecho1 ?hecho2))
+      (test(>= ?n2 ?n1))
+      (test(neq ?nodo1 0))
+      (test(eq ?nodocolindante ?nodo2))
+=>
+      ;(printout t "*---------------COINDIDENCIA---------------*" crlf)
+      ;(printout t "t1 " ?t1 " t2 " ?t2 "" crlf)
+      ;(printout t "n2 " ?n2 " n1 " ?n1 "" crlf)
+      ;(printout t "nodo1 " ?nodo1 " nodo2 " ?nodo2 "" crlf)
+      ;(printout t "hecho1 " ?hecho1 " hecho2 " ?hecho2 "" crlf)
+      (retract ?hecho2)
+      (retract ?casillacolindante)
+)    
