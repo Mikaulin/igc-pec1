@@ -27,7 +27,7 @@
             (type INTEGER))
       (slot nodo
             (type INTEGER)
-            (default 0))
+            (default -1))
 )
 
 (deftemplate arbol
@@ -49,11 +49,21 @@
             (default 0))
 )
 
+(deftemplate mejor
+      (slot nodo
+            (type FACT-ADDRESS SYMBOL)
+            (allowed-symbols vacio)
+            (default vacio))
+      (slot valor
+            (type INTEGER)
+            (default 0))
+)
 
 (defrule inicial
       ?x <- (initial-fact)
 =>
       (assert (arbol (territorio N N N N) (padre sin-padre) (nodo 0) (nivel 0) (indice 1)))
+      (assert (mejor (nodo vacio) (valor -1)))
       (assert (nodoactual 0))
       (retract ?x)
 )
@@ -63,8 +73,8 @@
       (test (eq ?N N))
 =>
       (bind ?posicion (+ (length$ $?primeras) 1))
-      (printout t "Hecho " ?hecho " Posicion " ?posicion "" crlf)
-      (printout t "territorio " $?primeras ?N $?ultimas "" crlf)
+      ;(printout t "Hecho " ?hecho " Posicion " ?posicion "" crlf)
+      ;(printout t "territorio " $?primeras ?N $?ultimas "" crlf)
       (assert (arbol (territorio $?primeras B $?ultimas) (padre ?hecho) (nivel (+ ?nivel 1)) (indice ?posicion)))  
       
       (assert (casilla-explotada (indice ?posicion)))
@@ -89,7 +99,7 @@
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (> (- ?indice ?*columnas*) 0)))
 
 =>
-      (printout t "Modificamos arriba " (- ?indice ?*columnas*) "" crlf)
+      ;(printout t "Modificamos arriba " (- ?indice ?*columnas*) "" crlf)
       (assert (colindante (indice (- ?indice ?*columnas*)) (nodo ?nodo)))
 )
 
@@ -100,7 +110,7 @@
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (< (+ ?indice ?*columnas*) ?*maximo*)))
 
 =>
-      (printout t "Modificamos abajo " (+ ?indice ?*columnas*) "" crlf)
+      ;(printout t "Modificamos abajo " (+ ?indice ?*columnas*) "" crlf)
       (assert (colindante (indice (+ ?indice ?*columnas*)) (nodo ?nodo)))
 )
 
@@ -111,7 +121,7 @@
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (neq (mod ?indice ?*columnas*) 0)))
 
 =>
-      (printout t "Modificamos derecha " (+ ?indice 1) "" crlf)
+      ;(printout t "Modificamos derecha " (+ ?indice 1) "" crlf)
       (assert (colindante (indice (+ ?indice 1)) (nodo ?nodo)))
 )
 
@@ -122,7 +132,7 @@
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (neq (mod ?indice ?*columnas*) 1)))
 
 =>
-      (printout t "Modificamos izquierda " (- ?indice 1) "" crlf)
+      ;(printout t "Modificamos izquierda " (- ?indice 1) "" crlf)
       (assert (colindante (indice (- ?indice 1)) (nodo ?nodo)))
 )
 
@@ -166,6 +176,8 @@
           )
       )
 
+      (printout t "Territorio " ?t " valor " ?nuevovalor"" crlf)
+
       (assert (nodoactual (+ 1 ?contador)))
       (modify ?arbol (nodo ?contador) (valor ?nuevovalor))
       (retract ?hechonodo)
@@ -184,12 +196,12 @@
       (declare (salience 2000))
       ?hecho1 <- (arbol (territorio $?t1) (nodo ?nodo1) (nivel ?n1) (padre ?p1))
       ?hecho2 <- (arbol (territorio $?t2) (nodo ?nodo2) (nivel ?n2) (padre ?p2))
-      ?casillacolindante <- (colindante (indice ?indice) (nodo ?nodocolindante))
+    
       (test(eq ?t1 ?t2))
       (test(neq ?hecho1 ?hecho2))
       (test(>= ?n2 ?n1))
       (test(neq ?nodo1 0))
-      (test(eq ?nodocolindante ?nodo2))
+
 =>
       ;(printout t "*---------------COINDIDENCIA---------------*" crlf)
       ;(printout t "t1 " ?t1 " t2 " ?t2 "" crlf)
@@ -197,5 +209,13 @@
       ;(printout t "nodo1 " ?nodo1 " nodo2 " ?nodo2 "" crlf)
       ;(printout t "hecho1 " ?hecho1 " hecho2 " ?hecho2 "" crlf)
       (retract ?hecho2)
-      (retract ?casillacolindante)
+
 )    
+
+(defrule mejor-nodo
+      ?hecho <- (arbol (territorio $?t1) (valor ?valor1))
+      ?mejor <- (mejor (valor ?valor2))
+      (test(> ?valor1 ?valor2))
+=>
+      (modify ?mejor (nodo ?hecho) (valor ?valor1))
+)
