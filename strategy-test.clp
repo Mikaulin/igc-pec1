@@ -44,65 +44,43 @@
             (type INTEGER))
       (slot indice
             (type INTEGER))
+      (slot valor
+            (type INTEGER)
+            (default 0))
 )
 
 
 (defrule inicial
       ?x <- (initial-fact)
 =>
-      (assert (arbol (territorio A N N N) (padre sin-padre) (nodo 0) (nivel 0) (indice 1)))
+      (assert (arbol (territorio N N N N) (padre sin-padre) (nodo 0) (nivel 0) (indice 1)))
       (assert (nodoactual 0))
       (retract ?x)
 )
 
 (defrule explotar-N-B
       ?hecho <- (arbol (territorio $?primeras ?N $?ultimas) (nivel ?nivel) (indice ?i) (nodo ?n))
-      ;(test (and (eq ?N N) (< ?nivel 3)))
       (test (eq ?N N))
 =>
-      (bind ?posicion (member$ ?N (create$ $?primeras ?N $?ultimas)))
-      ;(printout t "Posicion " ?posicion "" crlf)
-      ;(printout t "Nuevo territorio " $?primeras B $?ultimas "" crlf)
+      (bind ?posicion (+ (length$ $?primeras) 1))
+      (printout t "Hecho " ?hecho " Posicion " ?posicion "" crlf)
+      (printout t "territorio " $?primeras ?N $?ultimas "" crlf)
       (assert (arbol (territorio $?primeras B $?ultimas) (padre ?hecho) (nivel (+ ?nivel 1)) (indice ?posicion)))  
       
-      ; Nuevo
       (assert (casilla-explotada (indice ?posicion)))
 )
 
 (defrule explotar-B-A
       ?hecho <- (arbol (territorio $?primeras ?B $?ultimas) (nivel ?nivel) (indice ?i) (nodo ?n))
-      ;(test (and (eq ?B B) (< ?nivel 3)))
       (test (eq ?B B))
 =>
-      (bind ?posicion (member$ ?B (create$ $?primeras ?B $?ultimas)))
+      (bind ?posicion (+ (length$ $?primeras) 1))
       ;(printout t "Posicion " ?posicion "" crlf)
       ;(printout t "Nuevo territorio " $?primeras A $?ultimas "" crlf)
       (assert (arbol (territorio $?primeras A $?ultimas) (padre ?hecho) (nivel (+ ?nivel 1)) (indice ?posicion)))  
       
-      ; Nuevo
       (assert (casilla-explotada (indice ?posicion)))
 )
-
-(defrule contador-nodos      
-      (declare (salience 1000))
-      ?arbol <- (arbol (nodo ?nodoestado))
-      ?hechonodo <- (nodoactual ?contador)
-      (test(= ?nodoestado 0))
-=>
-      (assert (nodoactual (+ 1 ?contador)))
-      (modify ?arbol (nodo ?contador))
-      (retract ?hechonodo)
-)
-
-(defrule nodo-casilla-explotada
-      (declare (salience 1000))
-      ?explotada <- (casilla-explotada (indice ?indice) (nodo ?nodo))
-      ?hechonodo <- (nodoactual ?contador)
-      (test(= ?nodo 0))
-=>
-      (modify ?explotada (nodo ?contador))
-)
-
 
 (defrule explotar-arriba
       (declare (salience 950))
@@ -111,7 +89,7 @@
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (> (- ?indice ?*columnas*) 0)))
 
 =>
-      ;(printout t "Modificamos arriba " (- ?indice ?*columnas*) "" crlf)
+      (printout t "Modificamos arriba " (- ?indice ?*columnas*) "" crlf)
       (assert (colindante (indice (- ?indice ?*columnas*)) (nodo ?nodo)))
 )
 
@@ -122,7 +100,7 @@
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (< (+ ?indice ?*columnas*) ?*maximo*)))
 
 =>
-      ;(printout t "Modificamos abajo " (+ ?indice ?*columnas*) "" crlf)
+      (printout t "Modificamos abajo " (+ ?indice ?*columnas*) "" crlf)
       (assert (colindante (indice (+ ?indice ?*columnas*)) (nodo ?nodo)))
 )
 
@@ -130,10 +108,10 @@
       (declare (salience 950))
       ?arbol <- (arbol (territorio $?t) (nodo ?nodoestado))
       ?explotada <- (casilla-explotada (indice ?indice) (nodo ?nodo))
-      (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (< (+ ?indice 1) ?*maximo*)))
+      (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (neq (mod ?indice ?*columnas*) 0)))
 
 =>
-      ;(printout t "Modificamos derecha " (+ ?indice 1) "" crlf)
+      (printout t "Modificamos derecha " (+ ?indice 1) "" crlf)
       (assert (colindante (indice (+ ?indice 1)) (nodo ?nodo)))
 )
 
@@ -141,10 +119,10 @@
       (declare (salience 950))
       ?arbol <- (arbol (territorio $?t) (nodo ?nodoestado))
       ?explotada <- (casilla-explotada (indice ?indice) (nodo ?nodo))
-      (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (> (- ?indice 1) 0)))
+      (test (and (neq ?nodo 0) (= ?nodo ?nodoestado) (neq (mod ?indice ?*columnas*) 1)))
 
 =>
-      ;(printout t "Modificamos izquierda " (- ?indice 1) "" crlf)
+      (printout t "Modificamos izquierda " (- ?indice 1) "" crlf)
       (assert (colindante (indice (- ?indice 1)) (nodo ?nodo)))
 )
 
@@ -154,7 +132,6 @@
       ?explotada <- (casilla-explotada (indice ?indice) (nodo ?nodo))
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado)))
 =>
-      ;(printout t "Explotar colindantes del indice " ?indice " , nodo " ?nodo "" crlf)
       (retract ?explotada)
 )
 
@@ -173,6 +150,35 @@
       (retract ?casillacolindante)
 )
 
+(defrule contador-nodos-valor
+      (declare (salience 800))
+      ?arbol <- (arbol (territorio $?t) (nodo ?nodoestado) (valor ?valor))
+      ?hechonodo <- (nodoactual ?contador)
+      (test(= ?nodoestado 0))
+=>
+      (bind ?nuevovalor ?valor)
+      (progn$ (?var ?t)
+          (if (eq ?var B) then
+              (bind ?nuevovalor (+ ?nuevovalor 1))
+          )
+          (if (eq ?var A) then
+              (bind ?nuevovalor (+ ?nuevovalor 3))
+          )
+      )
+
+      (assert (nodoactual (+ 1 ?contador)))
+      (modify ?arbol (nodo ?contador) (valor ?nuevovalor))
+      (retract ?hechonodo)
+)
+
+(defrule nodo-casilla-explotada
+      (declare (salience 800))
+      ?explotada <- (casilla-explotada (indice ?indice) (nodo ?nodo))
+      ?hechonodo <- (nodoactual ?contador)
+      (test(= ?nodo 0))
+=>
+      (modify ?explotada (nodo ?contador))
+)
 
 (defrule elimina-nodos-repetidos
       (declare (salience 2000))
