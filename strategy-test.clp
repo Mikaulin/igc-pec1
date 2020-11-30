@@ -49,22 +49,12 @@
             (default 0))
 )
 
-(deftemplate mejor
-      (slot nodo
-            (type FACT-ADDRESS SYMBOL)
-            (allowed-symbols vacio)
-            (default vacio))
-      (slot valor
-            (type INTEGER)
-            (default 0))
-)
-
 (defrule inicial
       ?x <- (initial-fact)
 =>
       (assert (arbol (territorio N N N N) (padre sin-padre) (nodo 0) (nivel 0) (indice 1)))
-      (assert (mejor (nodo vacio) (valor -1)))
       (assert (nodoactual 0))
+      (assert (resultado))
       (retract ?x)
 )
 
@@ -147,14 +137,14 @@
 
 (defrule explotar-colindante-A-N
       (declare (salience 850))
-      ?arbol <- (arbol (territorio $?t) (nodo ?nodoestado))
+      ?arbol <- (arbol (territorio $?t) (nodo ?nodoestado) (valor ?valor))
       ?casillacolindante <- (colindante (indice ?indice) (nodo ?nodo))
       (test (and (neq ?nodo 0) (= ?nodo ?nodoestado)))
 =>
       (bind ?ne (nth$ ?indice ?t))
 
       (if (eq ?ne A) then
-          (modify ?arbol (territorio (replace$ ?t ?indice ?indice N)))
+          (modify ?arbol (valor (- ?valor 3)) (territorio (replace$ ?t ?indice ?indice N)))
       )
 
       (retract ?casillacolindante)
@@ -176,7 +166,7 @@
           )
       )
 
-      (printout t "Territorio " ?t " valor " ?nuevovalor"" crlf)
+      ;(printout t "Territorio " ?t " valor " ?nuevovalor "" crlf)
 
       (assert (nodoactual (+ 1 ?contador)))
       (modify ?arbol (nodo ?contador) (valor ?nuevovalor))
@@ -196,12 +186,10 @@
       (declare (salience 2000))
       ?hecho1 <- (arbol (territorio $?t1) (nodo ?nodo1) (nivel ?n1) (padre ?p1))
       ?hecho2 <- (arbol (territorio $?t2) (nodo ?nodo2) (nivel ?n2) (padre ?p2))
-    
       (test(eq ?t1 ?t2))
       (test(neq ?hecho1 ?hecho2))
       (test(>= ?n2 ?n1))
       (test(neq ?nodo1 0))
-
 =>
       ;(printout t "*---------------COINDIDENCIA---------------*" crlf)
       ;(printout t "t1 " ?t1 " t2 " ?t2 "" crlf)
@@ -209,13 +197,14 @@
       ;(printout t "nodo1 " ?nodo1 " nodo2 " ?nodo2 "" crlf)
       ;(printout t "hecho1 " ?hecho1 " hecho2 " ?hecho2 "" crlf)
       (retract ?hecho2)
-
 )    
 
-(defrule mejor-nodo
-      ?hecho <- (arbol (territorio $?t1) (valor ?valor1))
-      ?mejor <- (mejor (valor ?valor2))
-      (test(> ?valor1 ?valor2))
+(defrule resultado
+      (declare (salience -1000))
+      ?resultado <- (resultado)
+      ?hecho1 <- (arbol (territorio $?t1) (valor ?valor1))
+      (not (arbol (valor ?valor2&:(> ?valor2 ?valor1))))
 =>
-      (modify ?mejor (nodo ?hecho) (valor ?valor1))
+      (printout t "Pintar mejor " ?t1 " y su valor es " ?valor1 " hecho " ?hecho1 "" crlf)
+      (retract ?resultado)
 )
