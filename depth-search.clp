@@ -1,5 +1,7 @@
 (clear)
 
+(set-strategy depth)
+
 ;
 ;      primera version del programa coto de caza
 ;      búsqueda primero en profundidad

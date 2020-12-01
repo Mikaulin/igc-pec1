@@ -1,5 +1,7 @@
 (clear)
 
+(set-strategy breadth)
+
 (defglobal ?*filas* = 2)
 (defglobal ?*columnas* = 2)
 (defglobal ?*maximo* = 4)
